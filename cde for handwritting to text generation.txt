@@ -1,0 +1,55 @@
+import numpy as np
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
+
+# Sample dataset of handwritten text
+handwritten_text = ["Hello", "World", "Python", "AI", "ChatGPT"]
+
+# Preprocess the data
+chars = sorted(list(set("".join(handwritten_text))))
+char_to_idx = {char: idx for idx, char in enumerate(chars)}
+idx_to_char = {idx: char for char, idx in char_to_idx.items()}
+num_chars = len(chars)
+max_seq_length = max([len(text) for text in handwritten_text])
+
+X = []
+y = []
+
+for text in handwritten_text:
+    text = text.ljust(max_seq_length)
+    X.append([char_to_idx[char] for char in text[:-1]])
+    y.append([char_to_idx[char] for char in text[1:]])
+
+X = np.array(X)
+y = np.array(y)
+
+# Define the RNN model
+model = Sequential()
+model.add(Embedding(num_chars, 32, input_length=max_seq_length - 1))
+model.add(LSTM(128, return_sequences=True))
+model.add(Dense(num_chars, activation='softmax'))
+
+# Compile the model
+model.compile(loss='categorical_crossentropy', optimizer='adam')
+
+# Train the model
+model.fit(X, y, epochs=100, verbose=2)
+
+# Generate handwritten-like text
+seed_text = "Hello"
+generated_text = seed_text
+num_chars_to_generate = 50
+
+for _ in range(num_chars_to_generate):
+    input_sequence = [char_to_idx[char] for char in seed_text]
+    input_sequence = np.array(input_sequence).reshape(1, len(input_sequence))
+    predicted_probs = model.predict(input_sequence)
+    predicted_idx = np.random.choice(num_chars, p=predicted_probs[0])
+    predicted_char = idx_to_char[predicted_idx]
+    generated_text += predicted_char
+    seed_text += predicted_char
+    seed_text = seed_text[1:]
+
+print(generated_text)
